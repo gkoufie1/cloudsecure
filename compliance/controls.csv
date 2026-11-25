@@ -1,0 +1,13 @@
+PCI DSS v4.0 Req.,Check,Evidence,Limitations
+1,Inbound security groups (no 0.0.0.0/0-style or prefix-list sources),Scanner JSON,Requires segmentation tests
+1,Default VPC security group has no rules,Terraform plan + Security Hub EC2.2,Not checked by scanner
+1,Proxied tunnel DNS (origin reachable only via Cloudflare Tunnel),Scanner JSON,Does not prove no other path to origin
+2,IMDSv2,Scanner JSON,Not full OS hardening
+3,EBS encryption,Scanner JSON,No real card data or database
+4,Minimum edge TLS,Scanner JSON,Verify transport and scope separately
+4,Always Use HTTPS,Scanner JSON,Zone-wide setting; edge only
+6,WAF policy,Manual dashboard evidence,Plan dependent
+8,Access MFA,Manual identity provider evidence,Not automated
+10,VPC flow logs and SSM session logs,CloudWatch log groups,Lab retention defaults to 90 days; PCI expects 12 months
+10,CloudTrail retention,Manual CloudTrail review,Not automated
+11,Security testing,Test records,Not formal penetration test
