@@ -31,6 +31,8 @@ The lab was deployed and tested on 26 November 2026. The sanitized output is in 
 - **WAF:** the first rule could be bypassed with a trailing slash or capital letters. The rewritten rule blocked all 7 bypass attempts and left normal traffic alone
 - **Break-and-fix drill:** turning IMDSv2 off was caught by the scanner (FAIL, exit code 1) and shown to expose the credentials path on the server. After the fix: 7 PASS, the attack path refused with `401`, and legitimate access still working
 
+Screenshots from the same deployment are in [Screenshots](#screenshots) below.
+
 ---
 
 ## How it works
@@ -123,6 +125,63 @@ An example of the format:
 ```
 
 The scanner's exit code tells scripts what happened: `0` everything checked passed, `1` something failed, `2` something couldn't be checked.
+
+---
+
+## Screenshots
+
+Taken on 26 November 2026 during the real deployment. Account IDs, IP addresses and resource IDs are blacked out.
+
+### The site works, and the firewall blocks at the edge
+
+| The live site | The demo API |
+|---|---|
+| ![Health endpoint returning status ok](docs/screenshots/01-site-health.png) | ![API returning fake transaction data](docs/screenshots/02-site-api.png) |
+| `/health` answers through Cloudflare, although the server has no open ports. | The demo app's fake transaction data, end to end through the tunnel. |
+
+![Cloudflare block page](docs/screenshots/03-waf-block-page.png)
+*Visiting `/blocked-test` gets Cloudflare's block page. The request is stopped at the edge and never reaches AWS.*
+
+### Nothing on the internet can connect to the server
+
+![Security group with no inbound rules](docs/screenshots/13-aws-sg-no-inbound.png)
+*The server's security group: **0 inbound rules**, "No security group rules found". This is the core of the design.*
+
+![Tunnel list showing healthy](docs/screenshots/06-cf-tunnel-healthy.png)
+*The tunnel is **Healthy**. As Cloudflare's own description says, it's an outbound-only connection "without opening inbound ports".*
+
+![Tunnel overview](docs/screenshots/07-cf-tunnel-overview.png)
+*Tunnel overview: one connector on the server, `linux_amd64`, publishing `lab.georgekoufie.xyz` as an application.*
+
+![Proxied DNS record](docs/screenshots/08-cf-dns-proxied.png)
+*The DNS record points at the tunnel and is **Proxied**, so visitors only ever see Cloudflare's addresses, never the server's.*
+
+### Edge security settings
+
+![WAF custom rule expression](docs/screenshots/10-cf-waf-rule.png)
+*The hardened WAF rule. `lower()` and `starts_with()` closed the trailing-slash and capital-letter bypasses found in testing.*
+
+![Cloudflare traffic analytics](docs/screenshots/11-cf-security-events.png)
+*Cloudflare analytics for the test period: 45 requests, 12 of them **mitigated by Cloudflare** (the blocked tests), and the rest served normally.*
+
+![TLS 1.3 enabled](docs/screenshots/09-cf-tls-settings.png)
+*TLS 1.3 turned on. The minimum version (TLS 1.2) and Always Use HTTPS are set on the same page, and the scanner confirms both through the API ([evidence](docs/evidence/README.md)).*
+
+![API token permissions](docs/screenshots/12-cf-api-token-scope.png)
+*The scanner's API token is **read-only**, with every Edit box unticked. It has three read permissions; DNS Settings wasn't needed and could be removed to tighten it further.*
+
+### Server hardening and logging
+
+![Instance summary showing IMDSv2 required](docs/screenshots/14-aws-instance-imdsv2.png)
+*The instance: `t3.micro`, a dedicated IAM role, and **IMDSv2: Required**, the setting broken and fixed in the drill.*
+
+![VPC flow logs log group](docs/screenshots/15-aws-flow-logs.png)
+*VPC flow logs record all network traffic, with 3-month retention. During the run they captured over 2,000 rejected connection attempts from internet scanners (Telnet, HTTP, VoIP ports).*
+
+### Automated checks
+
+![GitHub Actions runs all passing](docs/screenshots/18-github-ci-green.png)
+*Every change passes CI: Terraform validation, Checkov, the scanner's unit tests and ShellCheck.*
 
 ---
 
@@ -312,6 +371,7 @@ scanner/audit.py           Evidence scanner for AWS and Cloudflare
 tests/test_audit.py        Unit tests for the scanner
 compliance/controls.csv    Checks mapped to PCI DSS requirements, with limitations
 docs/evidence/             Sanitized scan reports, plans and test results from a real run
+docs/screenshots/          Screenshots from the real deployment (shown in the Screenshots section)
 .github/workflows/ci.yml   Automated quality and security checks
 ```
 
