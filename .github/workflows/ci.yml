@@ -1,0 +1,50 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  terraform:
+    name: Terraform fmt + validate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: "~1.9"
+      - run: terraform fmt -check -diff
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+
+  checkov:
+    name: Checkov IaC scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: pip install checkov
+      # Intentional lab trade-offs are skipped inline in main.tf with a reason; anything else fails the build.
+      - run: checkov -d terraform --framework terraform --compact
+
+  scanner:
+    name: Scanner tests + shell lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+      - run: shellcheck terraform/bootstrap.sh
