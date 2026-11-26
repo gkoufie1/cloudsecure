@@ -1,0 +1,58 @@
+data.aws_caller_identity.current: Reading...
+data.aws_availability_zones.available: Reading...
+data.aws_ssm_parameter.ami: Reading...
+aws_cloudwatch_log_group.flow: Refreshing state... [id=/cloudsecure/vpc-flow-logs]
+aws_cloudwatch_log_group.sessions: Refreshing state... [id=/cloudsecure/ssm-sessions]
+aws_vpc.lab: Refreshing state... [id=vpc-xxxxxxxxxxxxx0a74]
+aws_iam_role.origin: Refreshing state... [id=cloudsecure-origin-�]
+data.aws_caller_identity.current: Read complete after 0s [id=<AWS_ACCOUNT_ID>]
+aws_iam_role.flow: Refreshing state... [id=cloudsecure-flow-�]
+data.aws_ssm_parameter.ami: Read complete after 0s [id=/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64]
+aws_ssm_document.session_prefs[0]: Refreshing state... [id=SSM-SessionManagerRunShell]
+data.aws_availability_zones.available: Read complete after 0s [id=us-east-1]
+aws_iam_role_policy.session_logs: Refreshing state... [id=cloudsecure-origin-�:terraform-�]
+aws_iam_role_policy.flow: Refreshing state... [id=cloudsecure-flow-�:terraform-�]
+aws_iam_role_policy_attachment.ssm: Refreshing state... [id=cloudsecure-origin-�/arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore]
+aws_iam_instance_profile.origin: Refreshing state... [id=cloudsecure-origin-�]
+aws_internet_gateway.lab: Refreshing state... [id=igw-xxxxxxxxxxxxx4779]
+aws_route_table.isolated: Refreshing state... [id=rtb-xxxxxxxxxxxxx8cad]
+aws_default_security_group.lab: Refreshing state... [id=sg-xxxxxxxxxxxxxa0de]
+aws_flow_log.lab: Refreshing state... [id=fl-xxxxxxxxxxxxxbc03]
+aws_subnet.edge: Refreshing state... [id=subnet-xxxxxxxxxxxxx04c6]
+aws_subnet.isolated: Refreshing state... [id=subnet-xxxxxxxxxxxxx6ce1]
+aws_security_group.origin: Refreshing state... [id=sg-xxxxxxxxxxxxx0983]
+aws_route_table.edge: Refreshing state... [id=rtb-xxxxxxxxxxxxx200e]
+aws_route_table_association.isolated: Refreshing state... [id=rtbassoc-xxxxxxxxxxxxxb45f]
+aws_route_table_association.edge: Refreshing state... [id=rtbassoc-xxxxxxxxxxxxx1fb0]
+aws_instance.origin: Refreshing state... [id=i-xxxxxxxxxxxxxdbd2]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  ~ update in-place
+
+Terraform will perform the following actions:
+
+  # aws_instance.origin will be updated in-place
+  ~ resource "aws_instance" "origin" {
+        id                                   = "i-xxxxxxxxxxxxxdbd2"
+        tags                                 = {
+            "Name" = "cloudsecure-origin"
+        }
+        # (41 unchanged attributes hidden)
+
+      ~ metadata_options {
+          ~ http_tokens                 = "required" -> "optional"
+            # (4 unchanged attributes hidden)
+        }
+
+        # (8 unchanged blocks hidden)
+    }
+
+Plan: 0 to add, 1 to change, 0 to destroy.
+
+─────────────────────────────────────────────────────────────────────────────
+
+Saved the plan to: drill-break.tfplan
+
+To perform exactly these actions, run the following command to apply:
+    terraform apply "drill-break.tfplan"
