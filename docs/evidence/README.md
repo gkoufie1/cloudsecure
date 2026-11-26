@@ -74,8 +74,11 @@ These were run from the lab server through SSM Run Command, because the tester's
 
 The first combined scan used an API token that was missing *Zone Settings → Read*. The scanner recorded the two settings checks as **ERROR** (`403 Forbidden`) instead of passing them or crashing, and exited with code `2`. After the permission was added, the same checks passed. The token was also confirmed read-only: a write attempt was refused with `Unauthorized to access requested resource`.
 
+## Screenshots
+
+Screenshots from the same run are in [docs/screenshots](../screenshots/) and shown with captions in the main README's [Screenshots](../../README.md#screenshots) section.
+
 ## Not yet captured
 
-- Screenshots: the site loading, the Cloudflare WAF rule and its events, the tunnel status
 - Actual AWS cost for the run (the README's cost table is still an estimate)
 - Cloudflare Access login enforcement
