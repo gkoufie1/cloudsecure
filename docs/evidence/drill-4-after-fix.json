@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-11-26T18:29:07.547515+00:00",
+  "region": "us-east-1",
+  "vpc": "vpc-xxxxxxxxxxxxx0a74",
+  "findings": [
+    {
+      "platform": "AWS",
+      "resource": "i-xxxxxxxxxxxxxdbd2",
+      "control": "IMDSv2",
+      "status": "PASS",
+      "evidence": "required"
+    },
+    {
+      "platform": "AWS",
+      "resource": "sg-xxxxxxxxxxxxx0983",
+      "control": "No unrestricted inbound rules",
+      "status": "PASS",
+      "evidence": {
+        "unrestricted_sources": []
+      }
+    },
+    {
+      "platform": "AWS",
+      "resource": "sg-xxxxxxxxxxxxxa0de",
+      "control": "No unrestricted inbound rules",
+      "status": "PASS",
+      "evidence": {
+        "unrestricted_sources": []
+      }
+    },
+    {
+      "platform": "AWS",
+      "resource": "vol-xxxxxxxxxxxxxab73",
+      "control": "EBS encryption",
+      "status": "PASS",
+      "evidence": true
+    },
+    {
+      "platform": "Cloudflare",
+      "resource": "lab.georgekoufie.xyz",
+      "control": "Proxied tunnel DNS",
+      "status": "PASS",
+      "evidence": [
+        {
+          "type": "CNAME",
+          "proxied": true
+        }
+      ]
+    },
+    {
+      "platform": "Cloudflare",
+      "resource": "<CLOUDFLARE_ZONE_ID>",
+      "control": "min_tls_version",
+      "status": "PASS",
+      "evidence": "1.2"
+    },
+    {
+      "platform": "Cloudflare",
+      "resource": "<CLOUDFLARE_ZONE_ID>",
+      "control": "always_use_https",
+      "status": "PASS",
+      "evidence": "on"
+    }
+  ]
+}

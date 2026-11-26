@@ -1,0 +1,3 @@
+IMDSv1 (no token) request: HTTP 200
+IMDSv1 can reach role credentials path: HTTP 200
+

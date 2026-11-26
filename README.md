@@ -21,6 +21,16 @@ It's built to show how security work is done in practice: infrastructure written
 
 **Skills used:** Terraform · AWS (VPC, EC2, IAM, Systems Manager, CloudWatch) · Cloudflare (Tunnel, WAF, Access) · Python with boto3 · GitHub Actions · Checkov · PCI DSS v4.0 control mapping
 
+### Proven on a real deployment
+
+The lab was deployed and tested on 26 November 2026. The sanitized output is in [docs/evidence](docs/evidence/README.md).
+
+- **Combined scan:** 7 of 7 checks passed across AWS and Cloudflare
+- **Origin isolation:** the site answered through Cloudflare over TLS 1.3, while the server's own IP gave no response at all
+- **TLS:** versions 1.0 and 1.1 were accepted by default. After the fix they were refused, and 1.2 and 1.3 still worked
+- **WAF:** the first rule could be bypassed with a trailing slash or capital letters. The rewritten rule blocked all 7 bypass attempts and left normal traffic alone
+- **Break-and-fix drill:** turning IMDSv2 off was caught by the scanner (FAIL, exit code 1) and shown to expose the credentials path on the server. After the fix: 7 PASS, the attack path refused with `401`, and legitimate access still working
+
 ---
 
 ## How it works
@@ -185,7 +195,12 @@ In your test domain's Cloudflare settings:
 
 - Set the minimum TLS version to 1.2 or higher, and turn on Always Use HTTPS
 - Turn on the managed WAF rules available on your plan
-- Add a custom WAF rule that blocks the path `/blocked-test`, then confirm with `curl` that it's blocked
+- Add a custom WAF rule (domain → **Security → Security rules → Create rule → Custom rule**). Use **Edit expression** and enter:
+  ```
+  (starts_with(lower(http.request.uri.path), "/blocked-test"))
+  ```
+  Don't use a simple "URI Path equals `/blocked-test`" rule: in testing, `/blocked-test/` and `/BLOCKED-TEST` got straight past it. `lower()` makes capitals irrelevant, and `starts_with` covers trailing slashes and sub-paths.
+- Confirm with `curl` that `/blocked-test`, `/blocked-test/` and `/BLOCKED-TEST` all return `403`, and that `/health` still returns `200`
 - Set up Access with your identity provider and confirm that a browser that isn't logged in gets turned away
 
 Never change these settings on a domain that's used for anything real.
@@ -206,7 +221,13 @@ python scanner/audit.py --region REGION --vpc VPC_ID --output evidence/baseline.
 
 `--region` must match the region you deployed to (it defaults to `us-east-1`).
 
-To include the Cloudflare checks, create a Cloudflare API token with only **DNS Read** and **Zone Settings Read** for the test domain, then:
+To include the Cloudflare checks, create a read-only API token at **Profile → API Tokens → Create Token → Start from scratch**:
+
+- Add a **Zone policy** (not an account or user policy), limited to your test domain only, not "All zones"
+- Give it exactly two permissions: **Zone Settings → Read** and **DNS → Read**. If Zone Settings is missing, the two settings checks come back as `ERROR 403`
+- Set it to expire after **7 days**
+
+Then:
 
 ```bash
 read -rs CLOUDFLARE_API_TOKEN; export CLOUDFLARE_API_TOKEN   # paste the token; it won't show on screen
@@ -290,8 +311,23 @@ terraform/bootstrap.sh     Startup script that installs the demo app on the serv
 scanner/audit.py           Evidence scanner for AWS and Cloudflare
 tests/test_audit.py        Unit tests for the scanner
 compliance/controls.csv    Checks mapped to PCI DSS requirements, with limitations
+docs/evidence/             Sanitized scan reports, plans and test results from a real run
 .github/workflows/ci.yml   Automated quality and security checks
 ```
+
+---
+
+## Lessons learned from the real deployment
+
+These came up while deploying and testing the lab, and each one changed the code or these instructions.
+
+- **Cloudflare's default still allows TLS 1.0.** A new zone accepted TLS 1.0 and 1.1 until the minimum was set by hand. Never assume a secure default; test it.
+- **Exact-match WAF rules are easy to get around.** The first rule ("path equals `/blocked-test`") was bypassed with a trailing slash and with capital letters. Cloudflare's URL normalization caught the encoded and double-slash tricks, but not those two. The fix was `starts_with(lower(...))`, and the lesson was to test every rule with bypass attempts as well as the obvious request.
+- **"Couldn't check" must never look like "passed".** The first real scan used a token missing one permission. The scanner reported `ERROR 403` for those checks and exited with code 2 instead of passing them, which is exactly the behavior the error handling was written for.
+- **Region-wide settings may already exist.** `terraform plan` succeeded, but a read-only check showed the account already had a Session Manager settings document, which would have failed the apply halfway through. Importing it first (`terraform import`) avoided a half-built lab. Check for existing shared resources before applying.
+- **Network filters can block legitimate new domains.** The tester's ISP security filter blocked the brand-new subdomain, so tests were run from the AWS server through SSM instead. A blank page doesn't always mean the service is down.
+- **Prove the risk, not just the setting.** Reading `http_tokens = optional` from the API shows a misconfiguration. Fetching the credentials path on the server with no token shows why it matters.
+- **The free Cloudflare plan doesn't include the full managed WAF ruleset.** That's why the WAF row in [controls.csv](compliance/controls.csv) says "plan dependent".
 
 ---
 

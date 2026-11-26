@@ -1,0 +1,4 @@
+IMDSv1 (no token) request: HTTP 401
+IMDSv1 role credentials path: HTTP 401
+IMDSv2 (with session token) request: HTTP 200
+
