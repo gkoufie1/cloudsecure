@@ -110,6 +110,12 @@ On the isolated lab instance only, change Terraform metadata http_tokens to opti
 
 To run the tests locally: `python -m unittest discover -s tests -v`
 
+The pipeline is hardened against supply-chain attacks: every action is pinned to a full commit SHA, and CI installs Python packages from [`requirements-lock.txt`](requirements-lock.txt) using exact versions, `--require-hashes` and prebuilt wheels only (`--only-binary :all:`), so no package setup scripts run. After changing `requirements.txt`, regenerate the lock file:
+
+```
+uv pip compile requirements.txt --python-platform x86_64-unknown-linux-gnu --python-version 3.12 --generate-hashes --only-binary :all: -o requirements-lock.txt
+```
+
 ## 8. Extend
 Add a 12-month log retention setting with KMS encryption, private subnets with NAT/controlled egress, private encrypted RDS with TLS, separate application and data security groups, Windows SSM managed host, Config/Security Hub, Inspector, CloudTrail retention, WAF/Access API checks, and approval-based remediation. These are future work, not deployed by this starter. See compliance/controls.csv. Capture actual evidence, not invented metrics.
 
