@@ -37,7 +37,10 @@ variable "manage_session_manager_preferences" {
 }
 
 data "aws_caller_identity" "current" {}
-data "aws_availability_zones" "available" { state = "available" }
+data "aws_availability_zones" "available" {
+  #checkov:skip=CKV_AWS_394:Only names[0] is used, for a single-AZ lab; the set growing does not move the subnets.
+  state = "available"
+}
 data "aws_ssm_parameter" "ami" { name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64" }
 
 # ---------- Network ----------
@@ -103,6 +106,7 @@ resource "aws_security_group" "origin" {
   description = "No inbound access; outbound TLS and tunnel"
   vpc_id      = aws_vpc.lab.id
   egress {
+    description = "HTTPS to SSM, package repos and Cloudflare API"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
@@ -111,6 +115,7 @@ resource "aws_security_group" "origin" {
   dynamic "egress" {
     for_each = toset(["tcp", "udp"])
     content {
+      description = "Cloudflare Tunnel (${upper(egress.value)} 7844)"
       from_port   = 7844
       to_port     = 7844
       protocol    = egress.value
@@ -123,6 +128,8 @@ resource "aws_security_group" "origin" {
 # ---------- Logging ----------
 
 resource "aws_cloudwatch_log_group" "flow" {
+  #checkov:skip=CKV_AWS_158:Lab uses the default CloudWatch encryption; customer-managed KMS is listed as future work.
+  #checkov:skip=CKV_AWS_338:Retention is var.log_retention_days (90 by default, for cost); set 365 for PCI.
   name              = "/cloudsecure/vpc-flow-logs"
   retention_in_days = var.log_retention_days
 }
@@ -162,12 +169,16 @@ resource "aws_flow_log" "lab" {
 }
 
 resource "aws_cloudwatch_log_group" "sessions" {
+  #checkov:skip=CKV_AWS_158:Lab uses the default CloudWatch encryption; customer-managed KMS is listed as future work.
+  #checkov:skip=CKV_AWS_338:Retention is var.log_retention_days (90 by default, for cost); set 365 for PCI.
   name              = "/cloudsecure/ssm-sessions"
   retention_in_days = var.log_retention_days
 }
 
 # Session Manager reads its logging preferences from this fixed document name (account + region wide).
 resource "aws_ssm_document" "session_prefs" {
+  #checkov:skip=CKV_AWS_112:Sessions already run over TLS; extra KMS session encryption needs a customer-managed key (future work).
+  #checkov:skip=CKV_AWS_113:Session logs go to CloudWatch with default encryption; KMS log encryption is future work.
   count           = var.manage_session_manager_preferences ? 1 : 0
   name            = "SSM-SessionManagerRunShell"
   document_type   = "Session"
@@ -230,9 +241,12 @@ resource "aws_iam_instance_profile" "origin" {
 }
 
 resource "aws_instance" "origin" {
+  #checkov:skip=CKV_AWS_88:Public IPv4 is egress-only (no inbound rules) to avoid NAT gateway cost; see README design decisions.
+  #checkov:skip=CKV_AWS_126:Detailed (1-minute) monitoring is a paid feature not needed for this lab.
   # insecure_value keeps the AMI ID visible in plans (value is always marked sensitive).
   ami                         = data.aws_ssm_parameter.ami.insecure_value
   instance_type               = var.instance_type
+  ebs_optimized               = true
   subnet_id                   = aws_subnet.edge.id
   associate_public_ip_address = true
   vpc_security_group_ids      = [aws_security_group.origin.id]
